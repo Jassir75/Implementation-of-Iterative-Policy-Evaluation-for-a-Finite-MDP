@@ -100,17 +100,97 @@ Where:
 
 ```python
 
+import gymnasium as gym
+import numpy as np
 
-# -------------------------------------------------
-# Policy Evaluation Function
-# -------------------------------------------------
+env = gym.make(
+    "FrozenLake-v1",
+    map_name="4x4",
+    is_slippery=True
+)
+
+env = env.unwrapped
+
+n_states = env.observation_space.n
+n_actions = env.action_space.n
+
+gamma = 0.99
+theta = 1e-8
+
+policy = np.ones((n_states, n_actions)) / n_actions
+
+def policy_evaluation(env, policy, gamma=0.99, theta=1e-8):
+    
+    # Initialize value function
+    V = np.zeros(env.observation_space.n)
+
+    iteration = 0
+
+    while True:
+        delta = 0
+
+        # Create a copy so that all states in this iteration
+        # use the previous value function
+        new_V = np.zeros_like(V)
+
+        # Evaluate every state
+        for s in range(env.observation_space.n):
+
+            v = 0
+
+            # Consider every possible action
+            for a in range(env.action_space.n):
+
+                # Probability of selecting action a
+                action_prob = policy[s, a]
+
+                # Environment transitions
+                for prob, next_state, reward, terminated in env.P[s][a]:
+
+                    # If the next state is terminal,
+                    # there is no future value
+                    future_value = 0 if terminated else V[next_state]
+
+                    v += action_prob * prob * (
+                        reward + gamma * future_value
+                    )
+
+            new_V[s] = v
+
+            # Track maximum change
+            delta = max(delta, abs(V[s] - new_V[s]))
+
+        # Update value function
+        V = new_V
+
+        iteration += 1
+
+        # Check convergence
+        if delta < theta:
+            break
+
+    return V, iteration
 
 
-# -------------------------------------------------
-# Display Output
-# -------------------------------------------------
+V, iterations = policy_evaluation(
+    env,
+    policy,
+    gamma,
+    theta
+)
 
-# Change the parameters and observe the results
+print("Name: Jassir Sulthan")
+print("Register Number: 212224240060")
+print("Number of iterations:", iterations)
+print("\nState-Value Function:")
+print(V)
+
+print("Name: Jassir Sulthan")
+print("Register Number: 212224240060")
+print("\nState-Value Function as 4x4 Grid:")
+print(np.round(V.reshape(4, 4), 4))
+
+env.close()
 
 ```
 
@@ -118,17 +198,10 @@ Where:
 
 ## Output
 
-```text
-
-Number of Iterations: 
-
-State-Value Function as 4x4 Grid:
+<img width="1024" height="591" alt="image" src="https://github.com/user-attachments/assets/54ff05e1-a33b-45a9-abc0-44a2c2b3749d" />
 
 
-
-```
 ---
-
 ## Result
 
 Iterative policy evaluation was implemented successfully using the Gymnasium FrozenLake environment. The state-value function for the fixed random policy was estimated using the Bellman expectation equation.
@@ -137,15 +210,16 @@ Iterative policy evaluation was implemented successfully using the Gymnasium Fro
 
 ## Inference
 
-```text
+1.The value function converged in 46 iterations, showing that iterative policy evaluation successfully reached convergence under the fixed random policy.
 
+2.Hole states (5, 7, 11, and 12) and the goal state (15) have V = 0.0, as they are terminal states with no future rewards after the episode ends.
 
+3.State 14 has the highest value (0.4130) because it is adjacent to the goal and has the highest probability of receiving the reward.
 
-```
+4.The state values gradually increase as the agent moves closer to the goal, forming a clear value gradient across the 4×4 FrozenLake grid.
 
+5.States near the starting position have very low values, indicating that a random policy has a low probability of reaching the goal without falling into a hole.
 
-
+6.Since is_slippery=True, the environment is stochastic, meaning the agent may move in unintended directions. This uncertainty lowers the expected value of most states compared to a deterministic environment.
 
 ---
-
-
